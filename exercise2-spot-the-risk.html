@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Exercise 2 — Spot the Risk</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Syne:wght@700;800&display=swap');
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy: #0F1F3D;
+    --blue: #1C4ED8;
+    --blue-light: #DBEAFE;
+    --amber: #B45309;
+    --amber-bg: #FEF3C7;
+    --amber-border: #FCD34D;
+    --red: #DC2626;
+    --red-light: #FEE2E2;
+    --green: #16A34A;
+    --green-light: #DCFCE7;
+    --grey-50: #F8FAFC;
+    --grey-100: #F1F5F9;
+    --grey-200: #E2E8F0;
+    --grey-400: #94A3B8;
+    --grey-600: #475569;
+    --grey-900: #0F172A;
+    --white: #FFFFFF;
+  }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--grey-50);
+    color: var(--grey-900);
+    min-height: 100vh;
+    padding: 0 0 60px;
+  }
+
+  header {
+    background: var(--navy);
+    color: var(--white);
+    padding: 36px 40px 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  header::after {
+    content: '';
+    position: absolute;
+    right: -60px; top: -60px;
+    width: 260px; height: 260px;
+    border-radius: 50%;
+    background: rgba(180,83,9,0.15);
+    pointer-events: none;
+  }
+
+  .eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: #FCD34D;
+    margin-bottom: 10px;
+  }
+
+  h1 {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(24px, 4vw, 36px);
+    font-weight: 800;
+    line-height: 1.1;
+    margin-bottom: 10px;
+  }
+
+  .subtitle {
+    font-size: 14px;
+    color: #CBD5E1;
+    max-width: 520px;
+    line-height: 1.6;
+  }
+
+  .container {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+
+  .instructions {
+    background: var(--white);
+    border-left: 4px solid var(--amber);
+    border-radius: 0 8px 8px 0;
+    padding: 16px 20px;
+    margin: 32px 0 24px;
+    font-size: 14px;
+    color: var(--grey-600);
+    line-height: 1.6;
+  }
+
+  .instructions strong { color: var(--navy); }
+
+  /* Progress */
+  .progress-bar-wrap {
+    background: var(--grey-200);
+    border-radius: 99px;
+    height: 6px;
+    margin-bottom: 24px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: var(--amber);
+    border-radius: 99px;
+    transition: width 0.4s ease;
+  }
+
+  .progress-label {
+    font-size: 12px;
+    color: var(--grey-400);
+    margin-bottom: 8px;
+  }
+
+  /* Scenarios */
+  .scenario { display: none; }
+  .scenario.active { display: block; }
+
+  .scenario-card {
+    background: var(--white);
+    border-radius: 12px;
+    border: 1.5px solid var(--grey-200);
+    overflow: hidden;
+    margin-bottom: 24px;
+  }
+
+  .scenario-toolbar {
+    background: var(--grey-100);
+    border-bottom: 1px solid var(--grey-200);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .toolbar-dot {
+    width: 10px; height: 10px;
+    border-radius: 50%;
+  }
+
+  .toolbar-dot:nth-child(1) { background: #FC5F57; }
+  .toolbar-dot:nth-child(2) { background: #FDBC2C; }
+  .toolbar-dot:nth-child(3) { background: #33C748; }
+
+  .toolbar-label {
+    margin-left: 8px;
+    font-size: 11px;
+    color: var(--grey-400);
+    font-weight: 500;
+  }
+
+  .scenario-body {
+    padding: 24px 28px;
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--grey-900);
+  }
+
+  .scenario-prompt {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--navy);
+    margin-bottom: 20px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--grey-100);
+  }
+
+  /* Clickable spans */
+  .clickable {
+    cursor: pointer;
+    border-radius: 4px;
+    padding: 1px 3px;
+    border: 1.5px solid transparent;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .clickable:hover { background: var(--amber-bg); border-color: var(--amber-border); }
+  .clickable.selected { background: var(--amber-bg); border-color: var(--amber); color: var(--amber); font-weight: 600; }
+  .clickable.revealed-correct { background: var(--red-light); border-color: var(--red); color: var(--red); font-weight: 600; }
+  .clickable.revealed-safe { background: var(--green-light); border-color: var(--green); color: var(--green); }
+  .clickable.user-correct { background: var(--green-light); border-color: var(--green); color: var(--green); font-weight: 600; }
+  .clickable.user-missed { background: var(--red-light); border-color: var(--red); color: var(--red); font-weight: 600; }
+
+  /* Counter */
+  .counter {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    color: var(--grey-600);
+  }
+
+  .counter-badge {
+    background: var(--amber-bg);
+    border: 1px solid var(--amber-border);
+    color: var(--amber);
+    font-weight: 700;
+    font-size: 13px;
+    padding: 2px 10px;
+    border-radius: 99px;
+  }
+
+  /* Actions */
+  .actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+  }
+
+  .btn {
+    padding: 11px 22px;
+    border-radius: 8px;
+    font-family: 'Inter', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+
+  .btn:hover { opacity: 0.88; transform: translateY(-1px); }
+  .btn-primary { background: var(--blue); color: var(--white); }
+  .btn-amber { background: var(--amber); color: var(--white); }
+  .btn-secondary { background: var(--grey-200); color: var(--grey-900); }
+
+  /* Feedback */
+  .feedback {
+    display: none;
+    background: var(--grey-50);
+    border: 1.5px solid var(--grey-200);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 20px;
+    font-size: 13px;
+    line-height: 1.7;
+  }
+
+  .feedback.show { display: block; }
+  .feedback.pass { border-color: var(--green); background: var(--green-light); }
+  .feedback.fail { border-color: var(--amber-border); background: var(--amber-bg); }
+
+  .feedback-title {
+    font-weight: 700;
+    font-size: 14px;
+    margin-bottom: 6px;
+  }
+
+  /* Risk legend */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 28px;
+    font-size: 12px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--grey-600);
+  }
+
+  .legend-dot {
+    width: 12px; height: 12px;
+    border-radius: 3px;
+  }
+
+  /* Summary */
+  .summary {
+    display: none;
+    background: var(--white);
+    border-radius: 12px;
+    border: 1.5px solid var(--grey-200);
+    padding: 28px;
+    text-align: center;
+  }
+
+  .summary.show { display: block; }
+
+  .summary-score {
+    font-family: 'Syne', sans-serif;
+    font-size: 48px;
+    font-weight: 800;
+    color: var(--navy);
+  }
+
+  .summary-label {
+    font-size: 14px;
+    color: var(--grey-600);
+    margin-bottom: 20px;
+  }
+
+  @media (max-width: 600px) {
+    header { padding: 28px 20px; }
+    .container { padding: 0 16px; }
+    .scenario-body { padding: 18px 16px; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="eyebrow">Exercise 2 of 3 — Data Sensitivity</div>
+  <h1>Spot the Risk</h1>
+  <p class="subtitle">Read the text and click on every piece of information that should not be shared with an AI tool.</p>
+</header>
+
+<div class="container">
+
+  <div class="instructions">
+    <strong>How it works:</strong> Each scenario contains a real-world text. <strong>Click on any word or phrase</strong> that you think is sensitive data. When you're ready, click <strong>Check</strong> to see how well you spotted the risks.
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:#FEF3C7;border:1.5px solid #FCD34D;"></div> Selected by you</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#FEE2E2;border:1.5px solid #DC2626;"></div> Sensitive — risk!</div>
+    <div class="legend-item"><div class="legend-dot" style="background:#DCFCE7;border:1.5px solid #16A34A;"></div> Not sensitive — safe</div>
+  </div>
+
+  <div class="progress-label" id="progress-label">Scenario 1 of 3</div>
+  <div class="progress-bar-wrap"><div class="progress-bar-fill" id="progress-bar" style="width:33%"></div></div>
+
+  <!-- Scenario 1 -->
+  <div class="scenario active" id="scenario-1">
+    <div class="scenario-card">
+      <div class="scenario-toolbar">
+        <div class="toolbar-dot"></div><div class="toolbar-dot"></div><div class="toolbar-dot"></div>
+        <span class="toolbar-label">AI Chat Prompt — Draft Email</span>
+      </div>
+      <div class="scenario-body">
+        <div class="scenario-prompt">A team member pastes the following into an AI writing tool to help draft a customer response. Click everything that should NOT have been included.</div>
+        <p>
+          "Help me write a follow-up email to
+          <span class="clickable" data-sensitive="true" data-explain="A customer's full name identifies a real individual — this is PII and should be replaced with a placeholder like 'Customer A'.">James Whitfield</span>,
+          a customer at
+          <span class="clickable" data-sensitive="true" data-explain="The customer's company name combined with other details can identify them — this is confidential business information.">Meridian Group</span>.
+          His
+          <span class="clickable" data-sensitive="true" data-explain="Account IDs linked to a named individual are sensitive identifiers — replace with a placeholder before using any AI tool.">account ID is USR-448821</span>
+          and he's been with us since
+          <span class="clickable" data-sensitive="false" data-explain="A general start year is not sensitive on its own — it contains no identifying or financial data.">2021</span>.
+          He is disputing a
+          <span class="clickable" data-sensitive="true" data-explain="A specific billing amount tied to a named customer is confidential financial data.">$340 billing charge</span>.
+          Please keep the tone
+          <span class="clickable" data-sensitive="false" data-explain="Tone instructions are not sensitive — they contain no personal or confidential data.">professional and concise</span>."
+        </p>
+      </div>
+    </div>
+
+    <div class="counter"><span>You've selected:</span><span class="counter-badge" id="count-1">0</span><span>items</span></div>
+    <div class="actions">
+      <button class="btn btn-amber" onclick="checkScenario(1)">Check</button>
+      <button class="btn btn-secondary" onclick="revealScenario(1)">Reveal All</button>
+    </div>
+    <div class="feedback" id="feedback-1"></div>
+    <button class="btn btn-primary" id="next-1" style="display:none" onclick="goTo(2)">Next Scenario →</button>
+  </div>
+
+  <!-- Scenario 2 -->
+  <div class="scenario" id="scenario-2">
+    <div class="scenario-card">
+      <div class="scenario-toolbar">
+        <div class="toolbar-dot"></div><div class="toolbar-dot"></div><div class="toolbar-dot"></div>
+        <span class="toolbar-label">AI Prompt — Summarize Notes</span>
+      </div>
+      <div class="scenario-body">
+        <div class="scenario-prompt">A team member uploads their meeting notes to an AI summarization tool. Click everything that should NOT have been included.</div>
+        <p>
+          "Summarize these notes from today's project call. Attendees:
+          <span class="clickable" data-sensitive="true" data-explain="Employee names combined with their role and company can be identifying — internal staff information should be anonymized.">Priya Nair (Project Lead)</span>
+          and
+          <span class="clickable" data-sensitive="true" data-explain="Vendor contact names are personal data — always replace with 'Vendor A' or a similar placeholder when using AI tools.">Tom Eriksen (Vendor Contact)</span>.
+          We discussed the
+          <span class="clickable" data-sensitive="false" data-explain="A general project deadline reference is not sensitive on its own.">Q4 delivery deadline</span>
+          and flagged a budget issue with
+          <span class="clickable" data-sensitive="true" data-explain="A specific contract number is a sensitive business identifier — it should never be included in AI prompts.">contract #CV-20193</span>.
+          Tom mentioned his company is under
+          <span class="clickable" data-sensitive="true" data-explain="Information about a vendor's internal legal situation is confidential and should not be shared with an AI tool.">internal audit pressure</span>
+          which may delay delivery. Next steps include sending a revised
+          <span class="clickable" data-sensitive="false" data-explain="A general document type reference is not sensitive on its own without specific figures or names.">project timeline template</span>
+          by Friday."
+        </p>
+      </div>
+    </div>
+
+    <div class="counter"><span>You've selected:</span><span class="counter-badge" id="count-2">0</span><span>items</span></div>
+    <div class="actions">
+      <button class="btn btn-amber" onclick="checkScenario(2)">Check</button>
+      <button class="btn btn-secondary" onclick="revealScenario(2)">Reveal All</button>
+    </div>
+    <div class="feedback" id="feedback-2"></div>
+    <button class="btn btn-primary" id="next-2" style="display:none" onclick="goTo(3)">Next Scenario →</button>
+  </div>
+
+  <!-- Scenario 3 -->
+  <div class="scenario" id="scenario-3">
+    <div class="scenario-card">
+      <div class="scenario-toolbar">
+        <div class="toolbar-dot"></div><div class="toolbar-dot"></div><div class="toolbar-dot"></div>
+        <span class="toolbar-label">AI Prompt — Generate Report</span>
+      </div>
+      <div class="scenario-body">
+        <div class="scenario-prompt">An employee uses an AI tool to help write a performance report. Click everything that should NOT have been included.</div>
+        <p>
+          "Write a performance summary for
+          <span class="clickable" data-sensitive="true" data-explain="Employee names in a performance context are personal data — use initials or 'Employee A' instead.">Marco Ferretti</span>,
+          who joined the
+          <span class="clickable" data-sensitive="false" data-explain="The team name is general internal information — not sensitive on its own.">Sales Operations team</span>
+          in
+          <span class="clickable" data-sensitive="false" data-explain="A general start month and year is not sensitive by itself.">January 2025</span>.
+          His current
+          <span class="clickable" data-sensitive="true" data-explain="Salary information is confidential employee data — it should never be shared with an AI tool.">salary is €48,000</span>
+          and he is on a
+          <span class="clickable" data-sensitive="true" data-explain="Performance improvement plans are confidential HR records — sharing this with an AI tool violates employee privacy.">performance improvement plan</span>
+          following a review last quarter. His manager noted
+          <span class="clickable" data-sensitive="true" data-explain="Specific manager feedback tied to a named employee is confidential HR data.">issues with meeting deadlines and stakeholder communication</span>.
+          Use a
+          <span class="clickable" data-sensitive="false" data-explain="Requesting a constructive tone is a formatting instruction — not sensitive data.">constructive and professional tone</span>."
+        </p>
+      </div>
+    </div>
+
+    <div class="counter"><span>You've selected:</span><span class="counter-badge" id="count-3">0</span><span>items</span></div>
+    <div class="actions">
+      <button class="btn btn-amber" onclick="checkScenario(3)">Check</button>
+      <button class="btn btn-secondary" onclick="revealScenario(3)">Reveal All</button>
+    </div>
+    <div class="feedback" id="feedback-3"></div>
+    <button class="btn btn-primary" id="next-3" style="display:none" onclick="showSummary()">See Results →</button>
+  </div>
+
+  <!-- Summary -->
+  <div class="summary" id="summary">
+    <div class="summary-score" id="summary-score"></div>
+    <div class="summary-label" id="summary-label"></div>
+    <p style="font-size:13px;color:#475569;max-width:440px;margin:0 auto 24px;line-height:1.7;">Remember: when in doubt about whether something is sensitive, treat it as sensitive. Always anonymize before using AI tools.</p>
+    <button class="btn btn-secondary" onclick="restartAll()">Start Over</button>
+  </div>
+
+</div>
+
+<script>
+let scenarioScores = {};
+let currentScenario = 1;
+const totalScenarios = 3;
+
+function getClickables(scenarioNum) {
+  return document.querySelectorAll(`#scenario-${scenarioNum} .clickable`);
+}
+
+// Setup click listeners
+[1, 2, 3].forEach(n => {
+  getClickables(n).forEach(el => {
+    el.addEventListener('click', () => {
+      if (el.dataset.locked === 'true') return;
+      el.classList.toggle('selected');
+      updateCount(n);
+    });
+  });
+});
+
+function updateCount(n) {
+  const count = document.querySelectorAll(`#scenario-${n} .clickable.selected`).length;
+  document.getElementById(`count-${n}`).textContent = count;
+}
+
+function checkScenario(n) {
+  const clickables = getClickables(n);
+  let correct = 0, missed = 0, falsePositives = 0;
+  const total = [...clickables].filter(el => el.dataset.sensitive === 'true').length;
+
+  clickables.forEach(el => {
+    el.dataset.locked = 'true';
+    const isSensitive = el.dataset.sensitive === 'true';
+    const isSelected = el.classList.contains('selected');
+
+    el.classList.remove('selected');
+
+    if (isSensitive && isSelected) { el.classList.add('user-correct'); correct++; }
+    else if (isSensitive && !isSelected) { el.classList.add('user-missed'); missed++; }
+    else if (!isSensitive && isSelected) { el.classList.add('revealed-safe'); falsePositives++; }
+  });
+
+  scenarioScores[n] = { correct, total, missed, falsePositives };
+
+  const fb = document.getElementById(`feedback-${n}`);
+  fb.classList.add('show');
+
+  if (correct === total && falsePositives === 0) {
+    fb.classList.add('pass');
+    fb.innerHTML = `<div class="feedback-title">✅ Excellent! You spotted all ${total} risks.</div>Every sensitive item was correctly identified. Great instincts!`;
+  } else {
+    fb.classList.add('fail');
+    let msg = `<div class="feedback-title">⚠️ ${correct} of ${total} risks identified.</div>`;
+    if (missed > 0) msg += `You missed ${missed} sensitive item${missed > 1 ? 's' : ''} — highlighted in red. `;
+    if (falsePositives > 0) msg += `${falsePositives} item${falsePositives > 1 ? 's' : ''} you selected ${falsePositives > 1 ? 'are' : 'is'} not sensitive — highlighted in green.`;
+    msg += `<br><br><em>Hover over each item to see why it is or isn't sensitive.</em>`;
+    fb.innerHTML = msg;
+  }
+
+  // Add tooltips
+  clickables.forEach(el => {
+    el.title = el.dataset.explain || '';
+  });
+
+  document.getElementById(`next-${n}`).style.display = 'inline-block';
+}
+
+function revealScenario(n) {
+  const clickables = getClickables(n);
+  clickables.forEach(el => {
+    el.dataset.locked = 'true';
+    el.classList.remove('selected');
+    if (el.dataset.sensitive === 'true') el.classList.add('revealed-correct');
+    else el.classList.add('revealed-safe');
+    el.title = el.dataset.explain || '';
+  });
+
+  if (!scenarioScores[n]) scenarioScores[n] = { correct: 0, total: [...clickables].filter(e => e.dataset.sensitive === 'true').length };
+
+  const fb = document.getElementById(`feedback-${n}`);
+  fb.classList.add('show', 'fail');
+  fb.innerHTML = `<div class="feedback-title">👁️ All items revealed.</div>Red items are sensitive and should not be shared with an AI tool. Green items are safe to include.`;
+  document.getElementById(`next-${n}`).style.display = 'inline-block';
+}
+
+function goTo(n) {
+  document.getElementById(`scenario-${n - 1}`).classList.remove('active');
+  document.getElementById(`scenario-${n}`).classList.add('active');
+  currentScenario = n;
+  document.getElementById('progress-label').textContent = `Scenario ${n} of ${totalScenarios}`;
+  document.getElementById('progress-bar').style.width = `${(n / totalScenarios) * 100}%`;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function showSummary() {
+  document.getElementById(`scenario-3`).classList.remove('active');
+  const summary = document.getElementById('summary');
+  summary.classList.add('show');
+
+  let totalCorrect = 0, totalItems = 0;
+  Object.values(scenarioScores).forEach(s => {
+    totalCorrect += s.correct;
+    totalItems += s.total;
+  });
+
+  document.getElementById('summary-score').textContent = `${totalCorrect} / ${totalItems}`;
+
+  let label = '';
+  if (totalCorrect === totalItems) label = '🎉 Perfect! You spotted every risk across all three scenarios.';
+  else if (totalCorrect >= totalItems * 0.75) label = '👍 Strong performance — review the items you missed.';
+  else label = '📚 Good effort — revisit the data sensitivity page and try again.';
+  document.getElementById('summary-label').textContent = label;
+
+  document.getElementById('progress-bar').style.width = '100%';
+  document.getElementById('progress-label').textContent = 'Complete';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+function restartAll() {
+  location.reload();
+}
+</script>
+</body>
+</html>
